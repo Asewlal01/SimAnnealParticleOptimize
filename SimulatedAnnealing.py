@@ -117,7 +117,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num):
     return current_points, current_energy, C
 
 
-def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num):
+def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Update the points and energy immediately.
     
@@ -127,6 +127,7 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num):
     :param Temp_min: Minimum temperature.
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
+    :param step_length: Maximum length of each perturbation.
     :return: Final points, energy, and specific heat.
     """
 
@@ -149,7 +150,7 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num):
             for i in range(len(current_points)):
                 # Generate a random perturbation to change the point
                 new_points = current_points.copy()
-                new_points[i] += np.random.normal(0, current_temp, size=2)
+                new_points[i] += step_length * np.random.normal(0, current_temp, size=2)
 
                 # If the new point is outside the circle, move it to the edge
                 if np.linalg.norm(new_points[i]) > R:
@@ -232,7 +233,7 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num):
     return current_points, current_energy, C
 
 
-def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
+def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
 
@@ -243,6 +244,7 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
     :param run_num: Number of times to run the algorithm.
+    :param step_length: Maximum length of each perturbation.
     :return: Final points and energy.
     """
 
@@ -255,7 +257,7 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
 
     # Run simulated annealing several times
     for _ in range(run_num):
-        points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num)
+        points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
         energies.append(energy)
         points_history.append(points)
 
