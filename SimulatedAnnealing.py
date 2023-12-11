@@ -51,7 +51,7 @@ def calculate_energy(points, k=1):
     return energy
 
 
-def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num):
+def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
     
@@ -61,6 +61,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num):
     :param Temp_min: Minimum temperature.
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
+    :param step_length: Maximum length of each perturbation.
     :return: Final points, energy, and specific heat.
     """
 
@@ -86,7 +87,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num):
             for i in range(len(current_points)):
                 # Generate a random perturbation to change the point
                 new_points = current_points.copy()
-                perturbation = np.random.normal(0, current_temp, size=2)
+                perturbation = step_length * np.random.normal(0, current_temp, size=2)
                 new_points[i] += perturbation
 
                 # If the new point is outside the circle, move it to the edge
@@ -176,7 +177,7 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     return current_points, current_energy, C
 
 
-def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num):
+def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Perturb all points together.
     
@@ -186,6 +187,7 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num):
     :param Temp_min: Minimum temperature.
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
+    :param step_length: Maximum length of each perturbation.
     :return: Final points, energy, and specific heat.
     """
 
@@ -206,7 +208,7 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num):
         for _ in range(iter_num):
             # Generate random perturbations to change all points
             new_points = current_points.copy()
-            new_points += np.random.normal(0, current_temp, size=new_points.shape)
+            new_points += step_length * np.random.normal(0, current_temp, size=new_points.shape)
 
             # If the new points are outside the circle, move them to the edge
             for i in range(len(new_points)):
@@ -233,7 +235,7 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num):
     return current_points, current_energy, C
 
 
-def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length):
+def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
 
