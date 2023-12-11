@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit
+from numba import jit, prange
 
 
 @jit(nopython=True, cache=True)
@@ -239,7 +239,7 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step
 
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True, cache=True, parallel=True)
 def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
@@ -255,22 +255,15 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, st
     :return: Final points and energy.
     """
 
-    # Initialize minimum energy
-    min_energy = np.inf
-
-    # Initialize list of energies and points history
-    energies = []
-    points_history = []
+    min_energy = 1e10
+    best_points = np.zeros((N, 2))
 
     # Run simulated annealing several times
-    for _ in range(run_num):
+    for i in prange(run_num):
         points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        energies.append(energy)
-        points_history.append(points)
-
-    # Find the best points and energy
-    best_points = points_history[np.argmin(energies)]
-    min_energy = np.min(energies)
+        if energy < min_energy:
+            min_energy = energy
+            best_points = points
 
     # Return the final points and energy
     return best_points, min_energy
