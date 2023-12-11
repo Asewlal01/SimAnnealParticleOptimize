@@ -143,17 +143,5 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
         # Cool system
         T *= cooling_schedule
 
-    return p_min_per_temp, E_min_per_temp    
-
-particles = 5
-max_temp = 100
-min_temp = 0.01
-alpha = 0.99
-iterations = 200
-
-positions, energies = annealing(particles, max_temp, min_temp, alpha, iterations)
-plot_positions(positions[-1])
-
-print("Min E: ", min(energies))
-plot_positions(positions[energies.index(min(energies))])
+    return p_min_per_temp, E_min_per_temp
 
