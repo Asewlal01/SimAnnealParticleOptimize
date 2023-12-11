@@ -1,6 +1,8 @@
 import numpy as np
+from numba import jit
 
 
+@jit(nopython=True)
 def generate_points(n, R):
     """
     Generate n random points within a circle of radius R.
@@ -11,10 +13,10 @@ def generate_points(n, R):
     """
 
     # Initialize array of points
-    points = []
+    points = np.zeros((n, 2))
 
     # Generate n points
-    for _ in range(n):
+    for i in range(n):
         # Generate polar coordinates
         theta = np.random.uniform(0, 2 * np.pi)
         r = R * np.sqrt(np.random.uniform(0, 1))
@@ -24,11 +26,11 @@ def generate_points(n, R):
         y = r * np.sin(theta)
 
         # Add point to array
-        points.append((x, y))
+        points[i] = [x,y]
 
-    return np.array(points)
+    return points
 
-
+@jit(nopython=True)
 def calculate_energy(points, k=1):
     """
     Calculate the total energy of a system of charges.
@@ -50,7 +52,7 @@ def calculate_energy(points, k=1):
 
     return energy
 
-
+@jit(nopython=True)
 def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
@@ -117,7 +119,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
 
     return current_points, current_energy, C
 
-
+# @jit(nopython=True)
 def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Update the points and energy immediately.
@@ -136,12 +138,14 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     current_temp = Temp_max
     current_points = generate_points(N, R)
     current_energy = calculate_energy(current_points)
+    print('a')
 
     # Initialize array of specific heats
     C = []
 
     # Run simulated annealing
     while current_temp > Temp_min:
+        print(f'temp = {current_temp}')
         # Initialize array of attempted energies
         E = []
 
@@ -176,7 +180,9 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
 
     return current_points, current_energy, C
 
+a, b, c = simulated_annealing_immediately(11, 1, 100, 0.01, 0.99, 100, 1)
 
+@jit(nopython=True)
 def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Perturb all points together.
@@ -235,6 +241,8 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step
     return current_points, current_energy, C
 
 
+
+@jit(nopython=True)
 def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
