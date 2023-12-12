@@ -1,9 +1,13 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
-# Function to initialize N positions randomly inside a unit circle
 def initialize(N):
+    """
+    Function to initialize N positions randomly inside a unit circle
+    
+    :param N: Number of particles
+    :return: Initial positions
+    """
     p = []
     while len(p) < N:
         x = np.random.uniform(-1, 1)
@@ -12,18 +16,34 @@ def initialize(N):
             p.append([x, y])
     return np.array(p)
 
-# Function to perturb the position of one particle
+
 def perturb(sigma):
+    """
+    Function to perturb the position of one particle
+    
+    :param sigma: Standard deviation of the normal distribution 
+    :return: Random number from normal distribution
+    """
     return abs(np.random.normal(0, sigma))
 
 
-# Function to check whether particles are within a unit circle
 def in_circle(p):
+    """
+    Function to check whether particles are within a unit circle
+    
+    :param p: Positions of the particle 
+    :return: True or false depending on whether the particle is within the unit circle
+    """
     return np.sum(p**2) <= 1
 
 
-# Function to calculate the energy of the system
 def energy(p):
+    """
+    Function to calculate the energy of the system
+    
+    :param p: Positions of the particles
+    :return: Energy of the system
+    """
     E = 0
     for i in range(len(p)):
         for j in range(i+1, len(p)):
@@ -31,8 +51,14 @@ def energy(p):
     return E
 
 
-# Function to calculate the direction of the force on a particle
 def force(p, i):
+    """
+    Function to calculate the direction of the force on a particle
+    
+    :param p: Positions of the particles
+    :param i: Particle index
+    :return: Force on particle i
+    """
     f = np.zeros(2)
     for j in range(len(p)):
         if j != i:
@@ -40,8 +66,15 @@ def force(p, i):
     return f
 
 
-# Function to induce one perturbation on the system
 def perturb_one(p, i, sigma):
+    """
+    Function to induce one perturbation on the system
+    
+    :param p: Positions of the particles
+    :param i: Particle index
+    :param sigma: Normal distribution standard deviation
+    :return: Perturbed positions of the particle
+    """
     if i < len(p):
         p[i] += force(p, i) * perturb(sigma)
         if not in_circle(p[i]): # Check if perturbation is valid
@@ -52,26 +85,47 @@ def perturb_one(p, i, sigma):
         return p
 
 
-# Function to induce perturbations on the system
 def perturb_system(p, sigma):
+    """
+    Function to induce perturbations on the system
+    
+    :param p: Positions of the particles
+    :param sigma: Normal distribution standard deviation
+    :return: Perturbed positions of the particles
+    """
     for i in range(len(p)):
         p[i] += perturb_one(p, i, sigma)
     return p
 
 
-# Function to calculate the acceptance probability
 def acceptance_probability(E_old, E_new, T):
+    """
+    Function to calculate the acceptance probability
+    
+    :param E_old: Energy in previous state
+    :param E_new: Energy in new state
+    :param T: Cooling temperature
+    :return: Probability of accepting the new state
+    """
     if E_new < E_old:
         return 1
     else:
         return np.exp(-(E_new - E_old) / T)
 
 
-# Function to find new position of partcles
 def new_positions(p, E, T, sigma):
+    """
+    Function to find new position of particles
+    
+    :param p: Positions of the particles
+    :param E: Current energy of the system
+    :param T: Cooling temperature
+    :param sigma: Standard deviation of the normal distribution
+    :return: New positions of the particles and the corresponding energy
+    """
     p_new = p.copy()
     E_new = E
-    
+
     # Perturb the system
     for i in range(len(p)):
         p_trial = perturb_one(p_new, i, sigma)
@@ -81,25 +135,21 @@ def new_positions(p, E, T, sigma):
         if acceptance_probability(E_new, E_trial, T) > np.random.uniform(0, 1):
             p_new = p_trial
             E_new = E_trial
-            
+
     return p_new, E_new
 
-# Function to plot the positions of the particles
-def plot_positions(p):
-    fig, ax = plt.subplots()
-    circle = plt.Circle((0, 0), 1, color='blue', fill=False)
-    ax.add_artist(circle)
-    ax.scatter(p[:,0], p[:,1], color='red', s=4)
-    plt.xlim(-1.25, 1.25)
-    plt.ylim(-1.25, 1.25)
-    plt.axhline(y=0, color='blue')
-    plt.axvline(x=0, color='blue')
-    plt.title("Particle positions for N = " + str(len(p)))
-    plt.show()
 
-
-# Function to run the annealing process
 def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
+    """
+    Function to run the annealing process
+    
+    :param N: Number of particles
+    :param T_max: Maximum temperature
+    :param T_min: Minimum temperature
+    :param cooling_schedule: Amount of cooling per iteration
+    :param no_iterations: Number of iterations per temperature
+    :return: Positions and energies of the system per temperature
+    """
     # Initialize positions
     p = initialize(N)
 
@@ -115,7 +165,6 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
 
     # Annealing process
     while T > T_min:
-        # print("T: ", T) # Print temperature
 
         # Initialize standard deviation of random normal perturbation
         sigma = T #/T_max
@@ -128,17 +177,14 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
         for _ in range(no_iterations):
             # Get new positions for each iteration
             p, E = new_positions(p, E, T, sigma)
-            
+
             E_iter.append(E)
             p_iter.append(p)
 
         # Store minimum energy and corresponding positions for each temperature
         E_min_per_temp.append(min(E_iter))
         p_min_per_temp.append(p_iter[E_iter.index(min(E_iter))])
-        
-        #print("E min per temperature: ", E_min_per_temp[-1])
-        #plot_positions(p_min_per_temp[-1])
-        
+
         # Cool system
         T *= cooling_schedule
 
