@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit, prange
+from numba import jit
 
 
 @jit(nopython=True, cache=True)
@@ -125,7 +125,8 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
 @jit(nopython=True, cache=True)
 def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
-    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Update the points and energy immediately.
+    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
+    Update the points and energy immediately.
     
     :param N: Number of points.
     :param R: Radius of the circle.
@@ -186,7 +187,8 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
 @jit(nopython=True, cache=True)
 def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
-    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle. Perturb all points together.
+    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
+     Perturb all points together.
     
     :param N: Number of points.
     :param R: Radius of the circle.
@@ -257,18 +259,16 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, st
     :return: Best points and energy.
     """
 
-    energy_list = []
-    points_list = []
+    E_min = 1e10
+    best_points = np.zeros((N, 2))
 
     # Run simulated annealing several times
-    for i in prange(run_num):
+    for i in range(run_num):
         points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        energy_list.append(energy)
-        points_list.append(points)
-    
-    # Find the best points and energy
-    min_energy = np.min(energy_list)
-    best_points = points_list[np.argmin(energy_list)]
+        if energy < E_min:
+            E_min = energy
+            best_points = points
+
 
     # Return the final points and energy
-    return best_points, min_energy
+    return best_points, E_min
