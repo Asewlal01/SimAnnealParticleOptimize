@@ -30,6 +30,7 @@ def generate_points(n, R):
 
     return points
 
+
 @jit(nopython=True, cache=True)
 def calculate_energy(points, k=1):
     """
@@ -51,6 +52,7 @@ def calculate_energy(points, k=1):
             energy += k / distance
 
     return energy
+
 
 @jit(nopython=True, cache=True)
 def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
@@ -119,6 +121,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
 
     return current_points, current_energy, C
 
+
 @jit(nopython=True, cache=True)
 def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
@@ -179,6 +182,7 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
 
     return current_points, current_energy, C
 
+
 @jit(nopython=True, cache=True)
 def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
     """
@@ -238,8 +242,6 @@ def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step
     return current_points, current_energy, C
 
 
-
-@jit(nopython=True, cache=True, parallel=True)
 def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
@@ -252,18 +254,21 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, st
     :param iter_num: Number of iterations at each temperature.
     :param run_num: Number of times to run the algorithm.
     :param step_length: Maximum length of each perturbation.
-    :return: Final points and energy.
+    :return: Best points and energy.
     """
 
-    min_energy = 1e10
-    best_points = np.zeros((N, 2))
+    energy_list = []
+    points_list = []
 
     # Run simulated annealing several times
     for i in prange(run_num):
         points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        if energy < min_energy:
-            min_energy = energy
-            best_points = points
+        energy_list.append(energy)
+        points_list.append(points)
+    
+    # Find the best points and energy
+    min_energy = np.min(energy_list)
+    best_points = points_list[np.argmin(energy_list)]
 
     # Return the final points and energy
     return best_points, min_energy
