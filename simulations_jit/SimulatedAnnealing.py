@@ -123,7 +123,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
 
 
 @jit(nopython=True, cache=True)
-def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
+def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length, cooling_schedule="exponential"):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
     Update the points and energy immediately.
@@ -135,7 +135,8 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
     :param step_length: Maximum length of each perturbation.
-    :return: Final points, energy, and specific heat.
+    :param cooling_schedule: Cooling schedule. "exponential" or "linear".
+    :return: Final points and history of energy.
     """
 
     # Initialize current temperature, points, and energy
@@ -143,14 +144,11 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     current_points = generate_points(N, R)
     current_energy = calculate_energy(current_points)
 
-    # Initialize array of specific heats
-    C = []
+    # Initialize array of energy history
+    E = [current_energy]
 
     # Run simulated annealing
     while current_temp > Temp_min:
-        # Initialize array of attempted energies
-        E = []
-
         # Run iter_num iterations at current temperature
         for _ in range(iter_num):
             # Attempt to change each point
@@ -171,17 +169,16 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
                     current_points = new_points
                     current_energy = new_energy
 
-                # Save the new energy
-                E.append(new_energy)
-
-        E = np.array(E)
-        # Save the specific heat
-        C.append(np.var(E) / current_temp**2)
+        # Save the energy and temperature
+        E.append(current_energy)
 
         # Decrease the temperature
-        current_temp *= alpha
+        if cooling_schedule == "exponential":
+            current_temp *= alpha
+        elif cooling_schedule == "linear":
+            current_temp -= alpha
 
-    return current_points, current_energy, C
+    return current_points, E
 
 
 @jit(nopython=True, cache=True)
@@ -264,11 +261,59 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, st
 
     # Run simulated annealing several times
     for i in range(run_num):
-        points, energy, _ = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        if energy < E_min:
-            E_min = energy
+        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
+        if energy_history[-1] < E_min:
+            E_min = energy_history[-1]
             best_points = points
-
 
     # Return the final points and energy
     return best_points, E_min
+
+
+def get_T_history(Temp_max, Temp_min, alpha):
+    """
+    Get the temperature history.
+    
+    :param Temp_max: Maximum temperature.
+    :param Temp_min: Minimum temperature.
+    :param alpha: Temperature reduction factor.
+    :return: Temperature history.
+    """
+
+    # Initialize array of temperature
+    T = [Temp_max]
+
+    # Calculate temperature history
+    while T[-1] > Temp_min:
+        T.append(T[-1] * alpha)
+
+    # Return the temperature history
+    return np.array(T)
+
+
+def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
+    """
+    Run the simulated annealing algorithm several times and return the energy at each temperature.
+    
+    :param N: Number of points.
+    :param R: Radius of the circle.
+    :param Temp_max: Maximum temperature.
+    :param Temp_min: Minimum temperature.
+    :param alpha: Temperature reduction factor.
+    :param iter_num: Number of iterations at each temperature.
+    :param run_num: Number of times to run the algorithm.
+    :param step_length: Maximum length of each perturbation.
+    :return: Energy history under different temperature and temperature history.
+    """
+
+    # Initialize array of temperature and energy
+    T = get_T_history(Temp_max, Temp_min, alpha)
+    E = np.zeros((run_num, len(T)))
+
+    # Run simulated annealing several times
+    for i in range(run_num):
+        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
+        E[i] = energy_history
+
+    # Return energy history and temperature history
+    return E, T
