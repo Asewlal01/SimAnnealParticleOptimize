@@ -123,7 +123,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
 
 
 @jit(nopython=True, cache=True)
-def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length, cooling_schedule="exponential"):
+def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
     Update the points and energy immediately.
@@ -134,7 +134,6 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     :param Temp_min: Minimum temperature.
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
-    :param step_length: Maximum length of each perturbation.
     :param cooling_schedule: Cooling schedule. "exponential" or "linear".
     :return: Final points and history of energy.
     """
@@ -147,6 +146,8 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     # Initialize array of energy history
     E = [current_energy]
 
+    step_length =  R/100
+
     # Run simulated annealing
     while current_temp > Temp_min:
         # Run iter_num iterations at current temperature
@@ -155,7 +156,15 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
             for i in range(len(current_points)):
                 # Generate a random perturbation to change the point
                 new_points = current_points.copy()
-                new_points[i] += step_length * np.random.normal(0, current_temp, size=2)
+
+                # Get random vector
+                vec = np.random.uniform(-1, 1, 2)
+
+                # Set size to step_length
+                vec = vec / np.linalg.norm(vec) * step_length
+
+                # Perturb
+                new_points[i] += vec
 
                 # If the new point is outside the circle, move it to the edge
                 if np.linalg.norm(new_points[i]) > R:
@@ -177,6 +186,7 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
             current_temp *= alpha
         elif cooling_schedule == "linear":
             current_temp -= alpha
+
 
     return current_points, E
 
