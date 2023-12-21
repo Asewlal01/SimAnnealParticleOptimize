@@ -223,5 +223,4 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
         # Cool system
         T *= cooling_schedule
 
-    return p_min_per_temp, E_min_per_temp
-
+    return p, E
