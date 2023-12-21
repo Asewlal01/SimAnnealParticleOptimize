@@ -77,16 +77,16 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_sched
 
     # Initialize array of energy history
     E = [current_energy]
-    
-    # Linear sigma for perturbations
+
+    # Exponential sigma for perturbations
     b = np.log(N / 2) / (Temp_max - Temp_min)
     a = R / 2 * np.exp(-b * Temp_max)
-    
+
     # Run simulated annealing
     while current_temp > Temp_min:
         # Compute the sigma for perturbations
         sigma = a * np.exp(b * current_temp)
-        
+
         # Run iter_num iterations at current temperature
         for _ in range(iter_num):
             # Attempt to change each point
@@ -135,18 +135,19 @@ def multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     """
     # Initialize arrays of energy and positions
     E, ps = [], []
-    
+
     # Run simulated annealing several times
     for i in prange(run_num):
         # Run simulated annealing
         p, e = simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num)
-        
+
         # Save the energy and positions
         E.append(e)
         ps.append(p)
-    
+
     return E, ps
-    
+
+
 def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     """
     Run the simulated annealing algorithm several times to find the optimal configuration.
@@ -162,7 +163,7 @@ def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     """
     # Simulate annealing several times
     E, ps = multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num)
-    
+
     # Find the index of the minimum energy
     index = np.where(E == np.min(E))[0][0]
 

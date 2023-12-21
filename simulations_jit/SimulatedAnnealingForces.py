@@ -1,7 +1,7 @@
 import numpy as np
 from numba import jit
-from matplotlib import pyplot as plt
 from simulations_jit.SimulatedAnnealing import *
+
 
 @jit(nopython=True)
 def force(p, i):
@@ -18,25 +18,6 @@ def force(p, i):
             f += (p[i] - p[j]) / np.linalg.norm(p[i] - p[j]) ** 4
     return f
 
-@jit(nopython=True)
-def forcedPerturbation(i, R, current_points, step_length, current_energy, current_temp):
-    new_points = current_points.copy()
-
-    f = force(new_points, i)
-    new_points[i] += f * np.random.uniform(0, step_length)
-
-    # If the new point is outside the circle, move it to the edge
-    if np.linalg.norm(new_points[i]) > R:
-        new_points[i] *= R / np.linalg.norm(new_points[i])
-
-    # Accept the new points if the new energy is lower or by a probability depending on the temperature
-    new_energy = calculate_energy(new_points)
-    energy_change = new_energy - current_energy
-    if energy_change < 0 or np.exp(-energy_change / current_temp) > np.random.rand():
-        current_points = new_points
-        current_energy = new_energy
-
-    return current_points, current_energy
 
 @jit(nopython=True)
 def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
@@ -62,21 +43,53 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_sched
     # Initialize array of energy history
     E = [current_energy]
 
-    step_length = R / N
+    # Exponential sigma for perturbations
+    b = np.log(N / 2) / (Temp_max - Temp_min)
+    a = R / 2 * np.exp(-b * Temp_max)
+
+    # Linear variables for probability of forced perturbation
+    c = 0.99 / np.log(Temp_max / Temp_min)
+    d = 1 - c * np.log(Temp_max)
 
     # Run simulated annealing
     while current_temp > Temp_min:
-        # Run iter_num iterations at current temperature
-        for i in range(iter_num):
-            # Attempt to change each point
-            for j in range(len(current_points)):
-                if np.random.rand() < np.exp(current_temp - T_max):
-                    current_points, current_energy = perturbation(
-                        j, R, current_points, step_length, current_energy,current_temp)
+        # Calculate sigma
+        sigma = a * current_temp + b
 
+        # Calculate probability
+        p = c * np.log(current_temp) + d
+
+        # Run iter_num iterations at current temperature
+        for _ in range(iter_num):
+
+            # Attempt to change each point
+            for i in range(len(current_points)):
+                # Use random perturbation to change the point
+                if np.random.rand() < p:
+                    # Generate a random perturbation to change the point
+                    new_points = current_points.copy()
+                    new_points[i] += np.random.normal(0, sigma, size=2)
+
+                # Forced perturbation
                 else:
-                    current_points, current_energy = forcedPerturbation(
-                        j, R, current_points, step_length, current_energy, current_temp)
+                    # Get force
+                    f = force(current_points, i)
+
+                    # Generate a forced perturbation to change the point
+                    new_points = current_points.copy()
+                    new_points[i] += f * np.random.uniform(0, sigma)
+
+                # If the new point is outside the circle, move it to the edge
+                if np.linalg.norm(new_points[i]) > R:
+                    new_points[i] *= R / np.linalg.norm(new_points[i])
+
+                # Accept the new points if the new energy is lower or by a probability depending on the temperature
+                new_energy = calculate_energy(new_points)
+                energy_change = new_energy - current_energy
+                if energy_change < 0 or np.exp(
+                        -energy_change / current_temp) > np.random.rand():
+                    current_points = new_points
+                    current_energy = new_energy
 
         # Save the energy and temperature
         E.append(current_energy)
