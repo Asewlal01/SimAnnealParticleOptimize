@@ -14,8 +14,8 @@ def energy(positions):
 
 def getPositions(params, N):
 
-    R = params[:3]
-    theta = params[3:]
+    R = params[:len(N)]
+    theta = params[len(N):]
 
     # Array storing positions
     positions = [np.array([]), np.array([])]
@@ -61,6 +61,10 @@ def optimalSystem(N):
 
 
     # Minimize
-    res = minimize(system, x0=init, method='SLSQP', bounds=bounds, args=N)
+    res = minimize(system, x0=init, method='Nelder-Mead', bounds=bounds, args=N)
 
     return res.fun, res.x
+
+N = [10, 1]
+res = optimalSystem(N)
+print(res[0])
