@@ -201,13 +201,8 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
     # Initialize temperature
     T = T_max
 
-    # Initialize lists to store minima per temperature
-    E_min_per_temp = [E]
-    p_min_per_temp = [p]
-
     # Annealing process
     while T > T_min:
-
         # Initialize standard deviation of random normal perturbation
         sigma = T
 
