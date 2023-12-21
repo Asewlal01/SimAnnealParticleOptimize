@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True)
 def generate_points(n, R):
     """
     Generate n random points within a circle of radius R.
@@ -30,8 +30,33 @@ def generate_points(n, R):
 
     return points
 
+@jit(nopython=True)
+def perturbation(i, R, current_points, step_length, current_energy, current_temp):
+    # Generate a random perturbation to change the point
+    new_points = current_points.copy()
 
-@jit(nopython=True, cache=True)
+    # Get random vector
+    vec = np.random.uniform(-step_length, step_length, 2)
+
+    # Perturb
+    new_points[i] += vec
+
+    # If the new point is outside the circle, move it to the edge
+    if np.linalg.norm(new_points[i]) > R:
+        new_points[i] *= R / np.linalg.norm(new_points[i])
+
+    # Accept the new points if the new energy is lower or by a probability depending on the temperature
+    new_energy = calculate_energy(new_points)
+    energy_change = new_energy - current_energy
+    if energy_change < 0 or np.exp(
+            -energy_change / current_temp) > np.random.rand():
+        current_points = new_points
+        current_energy = new_energy
+
+    return current_points, current_energy
+
+
+@jit(nopython=True)
 def calculate_energy(points, k=1):
     """
     Calculate the total energy of a system of charges.
@@ -53,77 +78,8 @@ def calculate_energy(points, k=1):
 
     return energy
 
-
-@jit(nopython=True, cache=True)
-def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
-    """
-    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
-    
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param step_length: Maximum length of each perturbation.
-    :return: Final points, energy, and specific heat.
-    """
-
-    # Initialize current temperature, points, and energy
-    current_temp = Temp_max
-    current_points = generate_points(N, R)
-    current_energy = calculate_energy(current_points)
-
-    # Initialize array of specific heats
-    C = []
-
-    # Run simulated annealing
-    while current_temp > Temp_min:
-        # Initialize array of attempted energies
-        E = []
-
-        # Run iter_num iterations at current temperature
-        for _ in range(iter_num):
-            # Initialize array of perturbations
-            perturbations = np.zeros_like(current_points)
-
-            # Attempt to change each point
-            for i in range(len(current_points)):
-                # Generate a random perturbation to change the point
-                new_points = current_points.copy()
-                perturbation = step_length * np.random.normal(0, current_temp, size=2)
-                new_points[i] += perturbation
-
-                # If the new point is outside the circle, move it to the edge
-                if np.linalg.norm(new_points[i]) > R:
-                    new_points[i] *= R / np.linalg.norm(new_points[i])
-                    perturbation = new_points[i] - current_points[i]
-
-                # Save the perturbations if the new energy is lower or by a probability depending on the temperature
-                new_energy = calculate_energy(new_points)
-                energy_change = new_energy - current_energy
-                if energy_change < 0 or np.exp(
-                        -energy_change / current_temp) > np.random.rand():
-                    perturbations[i] = perturbation
-
-                # Save the new energy
-                E.append(new_energy)
-
-            # Update the points and energy
-            current_points += perturbations
-            current_energy = calculate_energy(current_points)
-
-        # Save the specific heat
-        C.append(np.var(E) / current_temp**2)
-
-        # Decrease the temperature
-        current_temp *= alpha
-
-    return current_points, current_energy, C
-
-
-@jit(nopython=True, cache=True)
-def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length, cooling_schedule="exponential"):
+@jit(nopython=True)
+def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
     Update the points and energy immediately.
@@ -134,7 +90,6 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     :param Temp_min: Minimum temperature.
     :param alpha: Temperature reduction factor.
     :param iter_num: Number of iterations at each temperature.
-    :param step_length: Maximum length of each perturbation.
     :param cooling_schedule: Cooling schedule. "exponential" or "linear".
     :return: Final points and history of energy.
     """
@@ -147,27 +102,15 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
     # Initialize array of energy history
     E = [current_energy]
 
+    step_length = R/N
+
     # Run simulated annealing
     while current_temp > Temp_min:
         # Run iter_num iterations at current temperature
         for _ in range(iter_num):
             # Attempt to change each point
             for i in range(len(current_points)):
-                # Generate a random perturbation to change the point
-                new_points = current_points.copy()
-                new_points[i] += step_length * np.random.normal(0, current_temp, size=2)
-
-                # If the new point is outside the circle, move it to the edge
-                if np.linalg.norm(new_points[i]) > R:
-                    new_points[i] *= R / np.linalg.norm(new_points[i])
-                    
-                # Accept the new points if the new energy is lower or by a probability depending on the temperature
-                new_energy = calculate_energy(new_points)
-                energy_change = new_energy - current_energy
-                if energy_change < 0 or np.exp(
-                        -energy_change / current_temp) > np.random.rand():
-                    current_points = new_points
-                    current_energy = new_energy
+                current_points, current_energy = perturbation(i, R, current_points, step_length, current_energy, current_temp)
 
         # Save the energy and temperature
         E.append(current_energy)
@@ -179,96 +122,6 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, s
             current_temp -= alpha
 
     return current_points, E
-
-
-@jit(nopython=True, cache=True)
-def simulated_annealing_together(N, R, Temp_max, Temp_min, alpha, iter_num, step_length):
-    """
-    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
-     Perturb all points together.
-    
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param step_length: Maximum length of each perturbation.
-    :return: Final points, energy, and specific heat.
-    """
-
-    # Initialize current temperature, points, and energy
-    current_temp = Temp_max
-    current_points = generate_points(N, R)
-    current_energy = calculate_energy(current_points)
-
-    # Initialize array of specific heats
-    C = []
-
-    # Run simulated annealing
-    while current_temp > Temp_min:
-        # Initialize array of attempted energies
-        E = []
-
-        # Run iter_num iterations at current temperature
-        for _ in range(iter_num):
-            # Generate random perturbations to change all points
-            new_points = current_points.copy()
-            new_points += step_length * np.random.normal(0, current_temp, size=new_points.shape)
-
-            # If the new points are outside the circle, move them to the edge
-            for i in range(len(new_points)):
-                if np.linalg.norm(new_points[i]) > R:
-                    new_points[i] *= R / np.linalg.norm(new_points[i])
-            
-            # Accept the new points if the new energy is lower or by a probability depending on the temperature
-            new_energy = calculate_energy(new_points)
-            energy_change = new_energy - current_energy
-            if energy_change < 0 or np.exp(
-                    -energy_change / current_temp) > np.random.rand():
-                current_points = new_points
-                current_energy = new_energy
-            
-            # Save the new energy
-            E.append(new_energy)
-
-        # Save the specific heat
-        C.append(np.var(E) / current_temp**2)
-
-        # Decrease the temperature
-        current_temp *= alpha
-
-    return current_points, current_energy, C
-
-
-def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
-    """
-    Run the simulated annealing algorithm several times to find the optimal configuration.
-
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param run_num: Number of times to run the algorithm.
-    :param step_length: Maximum length of each perturbation.
-    :return: Best points and energy.
-    """
-
-    E_min = 1e10
-    best_points = np.zeros((N, 2))
-
-    # Run simulated annealing several times
-    for i in range(run_num):
-        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        if energy_history[-1] < E_min:
-            E_min = energy_history[-1]
-            best_points = points
-
-    # Return the final points and energy
-    return best_points, E_min
-
 
 def get_T_history(Temp_max, Temp_min, alpha):
     """
@@ -291,7 +144,7 @@ def get_T_history(Temp_max, Temp_min, alpha):
     return np.array(T)
 
 
-def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
+def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     """
     Run the simulated annealing algorithm several times and return the energy at each temperature.
     
@@ -312,7 +165,7 @@ def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
 
     # Run simulated annealing several times
     for i in range(run_num):
-        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
+        points, energy_history = simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num)
         E[i] = energy_history
 
     # Return energy history and temperature history
