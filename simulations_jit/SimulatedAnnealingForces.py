@@ -219,3 +219,16 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
         T *= cooling_schedule
 
     return p, E
+
+
+def plot_positions(p):
+    fig, ax = plt.subplots()
+    circle = plt.Circle((0, 0), 1, color='blue', fill=False)
+    ax.add_artist(circle)
+    ax.scatter(p[:,0], p[:,1], color='red', s=4)
+    plt.xlim(-1.25, 1.25)
+    plt.ylim(-1.25, 1.25)
+    plt.axhline(y=0, color='blue')
+    plt.axvline(x=0, color='blue')
+    plt.title("Particle positions for N = " + str(len(p)))
+    plt.show()
