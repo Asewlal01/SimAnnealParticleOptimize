@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import brute
+
 
 def energy(positions):
     # Energy of system
@@ -12,18 +13,15 @@ def energy(positions):
 
     return energy
 
-def getPositions(params, N):
 
-    R = params[:3]
-    theta = params[3:]
-
+def getPositions(R, N):
     # Array storing positions
     positions = [np.array([]), np.array([])]
 
     # Loop through rings
-    for r, n, a in zip(R, N, theta):
+    for r, n in zip(R, N):
         # Get angle for each particle in current ring
-        angles = np.linspace(0, 2 * np.pi, n + 1)[1:] + a
+        angles = np.linspace(0, 2 * np.pi, n + 1)[1:]
 
         # Convert to cartesian
         x = r * np.cos(angles)
@@ -36,31 +34,24 @@ def getPositions(params, N):
     # Convert to array
     return np.array(positions).T
 
-def system(params, N):
+
+def system(params, *N):
     # Get the positions
     positions = getPositions(params, N)
 
     # Return energy
     return energy(positions)
 
+
 def optimalSystem(N):
     # Number of rings
     rings = len(N)
 
     # Create bounds for radii and angles
-    radii = [[0,1]] * rings
-    angles = [[0, 2 * np.pi]] * rings
-
-    # Create initial guess for r and theta
-    r = np.linspace(1, 0.1, rings)
-    theta = np.zeros(rings)
-
-    # Create bounds and initial guess
-    bounds = np.array(radii + angles)
-    init = np.concatenate([r, theta])
-
+    radii = [[0, 1] for _ in range(rings)]
+    radii = tuple(radii)
 
     # Minimize
-    res = minimize(system, x0=init, method='SLSQP', bounds=bounds, args=N)
+    res = brute(system, ranges=radii, args=tuple(N), Ns=20, finish=None, full_output=True)
 
-    return res.fun, res.x
+    return res[0], res[1]
