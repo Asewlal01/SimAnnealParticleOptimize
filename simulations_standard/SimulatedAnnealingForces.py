@@ -1,6 +1,7 @@
 import numpy as np
 
 
+
 def initialize(N):
     """
     Function to initialize N positions randomly inside a unit circle
@@ -66,23 +67,38 @@ def force(p, i):
     return f
 
 
-def perturb_one(p, i, sigma):
+def random_perturb(p, i, sigma):
     """
-    Function to induce one perturbation on the system
-    
+    Function to induce one random perturbation on the system
+
     :param p: Positions of the particles
     :param i: Particle index
     :param sigma: Normal distribution standard deviation
     :return: Perturbed positions of the particle
     """
-    if i < len(p):
-        p[i] += force(p, i) * perturb(sigma)
-        if not in_circle(p[i]): # Check if perturbation is valid
-            p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back to the edge of the circle
-        return p
-    else:
-        print("Particle number out of range")
-        return p
+    p[i] += np.random.normal(0, sigma, 2)
+        
+    if not in_circle(p[i]): # Check if perturbation is valid
+        p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
+    return p
+
+
+def forced_perturb(p, i, sigma):
+    """
+    Function to induce one perturbation on the system in the direction of force
+
+    :param p: Positions of the particles
+    :param i: Particle index
+    :param sigma: Normal distribution standard deviation
+    :return: Perturbed positions of the particle
+    """
+    dir = force(p, i)/np.linalg.norm(force(p, i)) # Calculate direction of force
+
+    p[i] += dir*perturb(sigma)
+        
+    if not in_circle(p[i]): # Check if perturbation is valid
+        p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
+    return p
 
 
 def perturb_system(p, sigma):
@@ -94,7 +110,7 @@ def perturb_system(p, sigma):
     :return: Perturbed positions of the particles
     """
     for i in range(len(p)):
-        p[i] += perturb_one(p, i, sigma)
+        p[i] += random_new_positions(p, i, sigma)
     return p
 
 
@@ -113,7 +129,33 @@ def acceptance_probability(E_old, E_new, T):
         return np.exp(-(E_new - E_old) / T)
 
 
-def new_positions(p, E, T, sigma):
+def random_new_positions(p, E, T, sigma):
+    """
+    Function to find new position of particles based on random perturbation
+
+    :param p: Positions of the particles
+    :param E: Current energy of the system
+    :param T: Cooling temperature
+    :param sigma: Standard deviation of the normal distribution
+    :return: New positions of the particles and the corresponding energy
+    """
+    p_new = p.copy()
+    E_new = E
+    
+    # Perturb the system
+    for i in range(len(p)):
+        p_trial = random_perturb(p_new, i, sigma)
+        E_trial = energy(p_trial)
+
+        # Check if perturbation is accepted
+        if acceptance_probability(E_new, E_trial, T) > np.random.uniform(0, 1):
+            p_new = p_trial
+            E_new = E_trial
+            
+    return p_new, E_new
+
+
+def forced_new_positions(p, E, T, sigma):
     """
     Function to find new position of particles
     
@@ -167,23 +209,16 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
     while T > T_min:
 
         # Initialize standard deviation of random normal perturbation
-        sigma = T #/T_max
-
-        # Initialize lists to store results per iteration
-        E_iter = []
-        p_iter = []
+        sigma = T
 
         # Markov chain
-        for _ in range(no_iterations):
+        for k in range(no_iterations):
+            # Inducing some random perturbations
+            if k == no_iterations/10:
+                p, E = random_new_positions(p, E, T, sigma)
+            else:
             # Get new positions for each iteration
-            p, E = new_positions(p, E, T, sigma)
-
-            E_iter.append(E)
-            p_iter.append(p)
-
-        # Store minimum energy and corresponding positions for each temperature
-        E_min_per_temp.append(min(E_iter))
-        p_min_per_temp.append(p_iter[E_iter.index(min(E_iter))])
+                p, E = forced_new_positions(p, E, T, sigma)
 
         # Cool system
         T *= cooling_schedule
