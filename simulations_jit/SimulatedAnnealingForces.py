@@ -1,5 +1,6 @@
 import numpy as np
 from numba import jit
+from matplotlib import pyplot as plt
 
 @jit(nopython=True, cache=True)
 def initialize(N):
