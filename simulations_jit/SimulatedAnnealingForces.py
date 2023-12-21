@@ -68,7 +68,7 @@ def force(p, i):
     return f
     
 @jit(nopython=True)
-def random_perturb(p, i, sigma):
+def random_perturb(p, i, step):
     """
     Function to induce one random perturbation on the system
 
@@ -77,14 +77,15 @@ def random_perturb(p, i, sigma):
     :param sigma: Normal distribution standard deviation
     :return: Perturbed positions of the particle
     """
-    p[i] += np.random.normal(0, sigma, 2)
+    vec = np.random.uniform(-1, 1, 2)
+    p[i] += step * vec / np.linalg.norm(vec)
         
     if not in_circle(p[i]): # Check if perturbation is valid
         p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
     return p
     
 @jit(nopython=True)
-def forced_perturb(p, i, sigma):
+def forced_perturb(p, i, step):
     """
     Function to induce one perturbation on the system in the direction of force
 
@@ -93,9 +94,9 @@ def forced_perturb(p, i, sigma):
     :param sigma: Normal distribution standard deviation
     :return: Perturbed positions of the particle
     """
-    dir = force(p, i)/np.linalg.norm(force(p, i)) # Calculate direction of force
+    f = force(p, i) # Calculate direction of force
 
-    p[i] += dir*perturb(sigma)
+    p[i] += f * step
         
     if not in_circle(p[i]): # Check if perturbation is valid
         p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
@@ -202,19 +203,22 @@ def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
     # Initialize temperature
     T = T_max
 
+    step = 1 / 100
+
     # Annealing process
     while T > T_min:
         # Initialize standard deviation of random normal perturbation
-        sigma = T
+        prob = np.exp(T - T_max)
 
         # Markov chain
         for k in range(no_iterations):
-            # Inducing some random perturbations
-            if k == no_iterations/10:
-                p, E = random_new_positions(p, E, T, sigma)
+            # # Inducing some random perturbations
+            if np.random.rand() < prob:
+                p, E = random_new_positions(p, E, T, step)
+
             else:
-            # Get new positions for each iteration
-                p, E = forced_new_positions(p, E, T, sigma)
+                # Get new positions for each iteration
+                p, E = forced_new_positions(p, E, T, step)
 
         # Cool system
         T *= cooling_schedule
@@ -233,3 +237,14 @@ def plot_positions(p):
     plt.axvline(x=0, color='blue')
     plt.title("Particle positions for N = " + str(len(p)))
     plt.show()
+
+
+
+N = 10
+T_max = 100
+T_min = 0.01
+cooling_schedule = 0.99
+no_iterations = 100
+p, E = annealing(N, T_max, T_min, cooling_schedule, no_iterations)
+
+plot_positions(p)
