@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 
@@ -76,7 +77,8 @@ def random_perturb(p, i, sigma):
     :param sigma: Normal distribution standard deviation
     :return: Perturbed positions of the particle
     """
-    p[i] += np.random.normal(0, sigma, 2)
+    d = np.random.uniform(-1, 1, 2) # Calculate distance of perturbation
+    p[i] += 0.01*d/np.linalg.norm(d) #np.random.normal(0, sigma, 2)
         
     if not in_circle(p[i]): # Check if perturbation is valid
         p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
@@ -93,8 +95,8 @@ def forced_perturb(p, i, sigma):
     :return: Perturbed positions of the particle
     """
     dir = force(p, i)/np.linalg.norm(force(p, i)) # Calculate direction of force
-
-    p[i] += dir*perturb(sigma)
+    d = np.random.uniform(0, 1) # Calculate distance of perturbation
+    p[i] += dir*0.01*d/np.linalg.norm(d) #perturb(sigma)
         
     if not in_circle(p[i]): # Check if perturbation is valid
         p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
