@@ -170,7 +170,7 @@ def forced_new_positions(p, E, T, sigma):
 
     # Perturb the system
     for i in range(len(p)):
-        p_trial = perturb_one(p_new, i, sigma)
+        p_trial = random_new_positions(p_new, i, sigma)
         E_trial = energy(p_trial)
 
         # Check if perturbation is accepted
