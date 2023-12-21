@@ -121,36 +121,6 @@ def simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, c
 
     return current_points, E
 
-
-def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
-    """
-    Run the simulated annealing algorithm several times to find the optimal configuration.
-
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param run_num: Number of times to run the algorithm.
-    :param step_length: Maximum length of each perturbation.
-    :return: Best points and energy.
-    """
-
-    E_min = 1e10
-    best_points = np.zeros((N, 2))
-
-    # Run simulated annealing several times
-    for i in range(run_num):
-        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
-        if energy_history[-1] < E_min:
-            E_min = energy_history[-1]
-            best_points = points
-
-    # Return the final points and energy
-    return best_points, E_min
-
-
 def get_T_history(Temp_max, Temp_min, alpha):
     """
     Get the temperature history.
@@ -172,7 +142,7 @@ def get_T_history(Temp_max, Temp_min, alpha):
     return np.array(T)
 
 
-def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
+def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
     """
     Run the simulated annealing algorithm several times and return the energy at each temperature.
     
@@ -193,7 +163,7 @@ def get_E_T(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, step_length=1.):
 
     # Run simulated annealing several times
     for i in range(run_num):
-        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num, step_length)
+        points, energy_history = simulated_annealing_immediately(N, R, Temp_max, Temp_min, alpha, iter_num)
         E[i] = energy_history
 
     # Return energy history and temperature history
