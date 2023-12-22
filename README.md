@@ -12,9 +12,8 @@ not work, or is has not been installed, a non-Numba implementation has been adde
 the Numba implementation, so they cannot be used if the Numba implementations also don't work.
 
 # Structure
-- DataAcquirement.ipynb: This notebook contains all the code used to obtain data from simulating and save them
-  txt files to be used for the other notebook.
-- DataVisualization.ipynb: This notebook is used to visualize all data obtained from the DataAcquirement notebook
+- DataAcquirement.ipynb: This notebook contains all the code used to obtain data from simulating
+- DataVisualization.ipynb: This notebook is used to visualize the position of the particles
 - Analysis.py: This file constains analysis functions used to plot positions, get the optimal configuration,
   run multiple simulations
 - simulations_jit: This folder constains functions used to simulate a N particle system confined within some cirlce with radius R.
