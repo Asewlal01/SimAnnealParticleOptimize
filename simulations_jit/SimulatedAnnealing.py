@@ -116,59 +116,59 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_sched
         elif cooling_schedule == "linear":
             current_temp -= alpha
 
-    return current_points, E
+    return current_points, E[-1]
 
 
-@jit(nopython=True, cache=True, parallel=True)
-def multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
-    """
-    Run the simulated annealing algorithm several times.
-    
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param run_num: Number of times to run the algorithm.
-    :return: Energy and positions of particles at the end of each run.
-    """
-    # Initialize arrays of energy and positions
-    E, ps = [], []
-
-    # Run simulated annealing several times
-    for i in prange(run_num):
-        # Run simulated annealing
-        p, e = simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num)
-
-        # Save the energy and positions
-        E.append(e)
-        ps.append(p)
-
-    return E, ps
-
-
-def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
-    """
-    Run the simulated annealing algorithm several times to find the optimal configuration.
-
-    :param N: Number of points.
-    :param R: Radius of the circle.
-    :param Temp_max: Maximum temperature.
-    :param Temp_min: Minimum temperature.
-    :param alpha: Temperature reduction factor.
-    :param iter_num: Number of iterations at each temperature.
-    :param run_num: Number of times to run the algorithm.
-    :return: Best points and energy.
-    """
-    # Simulate annealing several times
-    E, ps = multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num)
-
-    # Find the index of the minimum energy
-    index = np.where(E == np.min(E))[0][0]
-
-    # Return the final points and energy
-    return ps[index], E[index]
+# @jit(nopython=True, cache=True, parallel=True)
+# def multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
+#     """
+#     Run the simulated annealing algorithm several times.
+#
+#     :param N: Number of points.
+#     :param R: Radius of the circle.
+#     :param Temp_max: Maximum temperature.
+#     :param Temp_min: Minimum temperature.
+#     :param alpha: Temperature reduction factor.
+#     :param iter_num: Number of iterations at each temperature.
+#     :param run_num: Number of times to run the algorithm.
+#     :return: Energy and positions of particles at the end of each run.
+#     """
+#     # Initialize arrays of energy and positions
+#     E, ps = [], []
+#
+#     # Run simulated annealing several times
+#     for i in prange(run_num):
+#         # Run simulated annealing
+#         p, e = simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num)
+#
+#         # Save the energy and positions
+#         E.append(e)
+#         ps.append(p)
+#
+#     return E, ps
+#
+#
+# def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, run_num):
+#     """
+#     Run the simulated annealing algorithm several times to find the optimal configuration.
+#
+#     :param N: Number of points.
+#     :param R: Radius of the circle.
+#     :param Temp_max: Maximum temperature.
+#     :param Temp_min: Minimum temperature.
+#     :param alpha: Temperature reduction factor.
+#     :param iter_num: Number of iterations at each temperature.
+#     :param run_num: Number of times to run the algorithm.
+#     :return: Best points and energy.
+#     """
+#     # Simulate annealing several times
+#     E, ps = multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num)
+#
+#     # Find the index of the minimum energy
+#     index = np.where(E == np.min(E))[0][0]
+#
+#     # Return the final points and energy
+#     return ps[index], E[index]
 
 
 def get_T_history(Temp_max, Temp_min, alpha):

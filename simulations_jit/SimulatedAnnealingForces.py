@@ -20,7 +20,7 @@ def force(p, i):
 
 
 @jit(nopython=True)
-def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
+def simulated_annealing_forces(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
     """
     Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
     Update the points and energy immediately.
@@ -100,4 +100,4 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_sched
         elif cooling_schedule == "linear":
             current_temp -= alpha
 
-    return current_points, E
+    return current_points, E[-1]
