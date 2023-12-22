@@ -21,7 +21,7 @@ the Numba implementation, so they cannot be used if the Numba implementations al
   All .py files within this folder use the Numba implementation
 - simulations_standard: This folder contains the same function as the simulations_jit, but is does not use a Numba implementation.
   This makes the code run a lot slower, and thus has not been implemented.
-- expected.py: This file 
+- expected.py: This file gives an expected value of the energy based on the number of particles in each ring
   
 
 Other .py and .ipynb files within this repository are not used anymore, as they were methods that did not show
