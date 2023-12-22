@@ -96,10 +96,40 @@ def multi_simulate(N, R, Temp_max, Temp_min, alpha, iter_num, run_num, func):
         p, e = func(N, R, Temp_max, Temp_min, alpha, iter_num)
 
         # Save the energy and positions
-        E.append(e)
+        E.append(e[-1])
         ps.append(p)
 
     return E, ps
+
+@jit(nopython=True, parallel=True, cache=True)
+def multi_simulate_particle(N, R, Temp_max, Temp_min, alpha, iter_num, func):
+    """
+    Run the simulated annealing algorithm for different particles
+
+    :param N: List containing number of particles
+    :param R: Radius of the circle.
+    :param Temp_max: Maximum temperature.
+    :param Temp_min: Minimum temperature.
+    :param alpha: Temperature reduction factor.
+    :param iter_num: Number of iterations at each temperature.
+    :return: Energy and positions of particles at the end of each run.
+    """
+
+    # Positions
+    positions = []
+
+    for i in prange(len(N)):
+        # Set n
+        n = N[i]
+
+        # Simulate
+        p, E = func(n, R, Temp_max, Temp_min, alpha, iter_num)
+
+        # Add to list
+        positions.append(p)
+
+    return positions
+
 
 
 def optimal_configuration(N, R, Temp_max, Temp_min, alpha, iter_num, simulations, func):

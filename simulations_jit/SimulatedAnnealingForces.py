@@ -100,4 +100,4 @@ def simulated_annealing_forces(N, R, Temp_max, Temp_min, alpha, iter_num, coolin
         elif cooling_schedule == "linear":
             current_temp -= alpha
 
-    return current_points, E[-1]
+    return current_points, E

@@ -55,3 +55,11 @@ def optimalSystem(N):
     res = brute(system, ranges=radii, args=tuple(N), Ns=20, finish=None, full_output=True)
 
     return res[0], res[1]
+
+N = [23, 6, 1]
+res = optimalSystem(N)
+print(res[1])
+
+N = [24, 6]
+res = optimalSystem(N)
+print(res[1])

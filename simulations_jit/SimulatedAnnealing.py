@@ -116,7 +116,7 @@ def simulated_annealing(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_sched
         elif cooling_schedule == "linear":
             current_temp -= alpha
 
-    return current_points, E[-1]
+    return current_points, E
 
 
 # @jit(nopython=True, cache=True, parallel=True)
