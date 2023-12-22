@@ -1,62 +1,12 @@
 import numpy as np
-from matplotlib import pyplot as plt
+from simulations_jit.SimulatedAnnealing import *
 
-
-
-def initialize(N):
-    """
-    Function to initialize N positions randomly inside a unit circle
-    
-    :param N: Number of particles
-    :return: Initial positions
-    """
-    p = []
-    while len(p) < N:
-        x = np.random.uniform(-1, 1)
-        y = np.random.uniform(-1, 1)
-        if x**2 + y**2 <= 1:
-            p.append([x, y])
-    return np.array(p)
-
-
-def perturb(sigma):
-    """
-    Function to perturb the position of one particle
-    
-    :param sigma: Standard deviation of the normal distribution 
-    :return: Random number from normal distribution
-    """
-    return abs(np.random.normal(0, sigma))
-
-
-def in_circle(p):
-    """
-    Function to check whether particles are within a unit circle
-    
-    :param p: Positions of the particle 
-    :return: True or false depending on whether the particle is within the unit circle
-    """
-    return np.sum(p**2) <= 1
-
-
-def energy(p):
-    """
-    Function to calculate the energy of the system
-    
-    :param p: Positions of the particles
-    :return: Energy of the system
-    """
-    E = 0
-    for i in range(len(p)):
-        for j in range(i+1, len(p)):
-            E += 1/np.linalg.norm(p[i] - p[j])
-    return E
 
 
 def force(p, i):
     """
     Function to calculate the direction of the force on a particle
-    
+
     :param p: Positions of the particles
     :param i: Particle index
     :return: Force on particle i
@@ -64,173 +14,89 @@ def force(p, i):
     f = np.zeros(2)
     for j in range(len(p)):
         if j != i:
-            f += (p[i] - p[j]) / np.linalg.norm(p[i] - p[j])**4
+            f += (p[i] - p[j]) / np.linalg.norm(p[i] - p[j]) ** 4
     return f
 
 
-def random_perturb(p, i, sigma):
+
+def simulated_annealing_forces(N, R, Temp_max, Temp_min, alpha, iter_num, cooling_schedule="exponential"):
     """
-    Function to induce one random perturbation on the system
+    Simulated annealing algorithm to minimize the energy of the system, with charges within the circle.
+    Update the points and energy immediately.
 
-    :param p: Positions of the particles
-    :param i: Particle index
-    :param sigma: Normal distribution standard deviation
-    :return: Perturbed positions of the particle
+    :param N: Number of points.
+    :param R: Radius of the circle.
+    :param Temp_max: Maximum temperature.
+    :param Temp_min: Minimum temperature.
+    :param alpha: Temperature reduction factor.
+    :param iter_num: Number of iterations at each temperature.
+    :param cooling_schedule: Cooling schedule. "exponential" or "linear".
+    :return: Final points and history of energy.
     """
-    d = np.random.uniform(-1, 1, 2) # Calculate distance of perturbation
-    p[i] += 0.01*d/np.linalg.norm(d) #np.random.normal(0, sigma, 2)
-        
-    if not in_circle(p[i]): # Check if perturbation is valid
-        p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
-    return p
 
+    # Initialize current temperature, points, and energy
+    current_temp = Temp_max
+    current_points = generate_points(N, R)
+    current_energy = calculate_energy(current_points)
 
-def forced_perturb(p, i, sigma):
-    """
-    Function to induce one perturbation on the system in the direction of force
+    # Initialize array of energy history
+    E = [current_energy]
 
-    :param p: Positions of the particles
-    :param i: Particle index
-    :param sigma: Normal distribution standard deviation
-    :return: Perturbed positions of the particle
-    """
-    dir = force(p, i)/np.linalg.norm(force(p, i)) # Calculate direction of force
-    d = np.random.uniform(0, 1) # Calculate distance of perturbation
-    p[i] += dir*0.01*d/np.linalg.norm(d) #perturb(sigma)
-        
-    if not in_circle(p[i]): # Check if perturbation is valid
-        p[i] *= 1/np.linalg.norm(p[i]) # If not, move particle back into the circle
-    return p
+    # Exponential sigma for perturbations
+    b = np.log(N / 2) / (Temp_max - Temp_min)
+    a = R / 2 * np.exp(-b * Temp_max)
 
+    # Linear variables for probability of forced perturbation
+    c = 0.99 / np.log(Temp_max / Temp_min)
+    d = 1 - c * np.log(Temp_max)
 
-def perturb_system(p, sigma):
-    """
-    Function to induce perturbations on the system
-    
-    :param p: Positions of the particles
-    :param sigma: Normal distribution standard deviation
-    :return: Perturbed positions of the particles
-    """
-    for i in range(len(p)):
-        p[i] += random_new_positions(p, i, sigma)
-    return p
+    # Run simulated annealing
+    while current_temp > Temp_min:
+        # Calculate sigma
+        sigma = a * current_temp + b
 
+        # Calculate probability
+        p = c * np.log(current_temp) + d
 
-def acceptance_probability(E_old, E_new, T):
-    """
-    Function to calculate the acceptance probability
-    
-    :param E_old: Energy in previous state
-    :param E_new: Energy in new state
-    :param T: Cooling temperature
-    :return: Probability of accepting the new state
-    """
-    if E_new < E_old:
-        return 1
-    else:
-        return np.exp(-(E_new - E_old) / T)
+        # Run iter_num iterations at current temperature
+        for _ in range(iter_num):
 
+            # Attempt to change each point
+            for i in range(len(current_points)):
+                # Use random perturbation to change the point
+                if np.random.rand() < p:
+                    # Generate a random perturbation to change the point
+                    new_points = current_points.copy()
+                    new_points[i] += np.random.normal(0, sigma, size=2)
 
-def random_new_positions(p, E, T, sigma):
-    """
-    Function to find new position of particles based on random perturbation
+                # Forced perturbation
+                else:
+                    # Get force
+                    f = force(current_points, i)
 
-    :param p: Positions of the particles
-    :param E: Current energy of the system
-    :param T: Cooling temperature
-    :param sigma: Standard deviation of the normal distribution
-    :return: New positions of the particles and the corresponding energy
-    """
-    p_new = p.copy()
-    E_new = E
-    
-    # Perturb the system
-    for i in range(len(p)):
-        p_trial = random_perturb(p_new, i, sigma)
-        E_trial = energy(p_trial)
+                    # Generate a forced perturbation to change the point
+                    new_points = current_points.copy()
+                    new_points[i] += f * np.random.uniform(0, sigma)
 
-        # Check if perturbation is accepted
-        if acceptance_probability(E_new, E_trial, T) > np.random.uniform(0, 1):
-            p_new = p_trial
-            E_new = E_trial
-            
-    return p_new, E_new
+                # If the new point is outside the circle, move it to the edge
+                if np.linalg.norm(new_points[i]) > R:
+                    new_points[i] *= R / np.linalg.norm(new_points[i])
 
+                # Accept the new points if the new energy is lower or by a probability depending on the temperature
+                new_energy = calculate_energy(new_points)
+                energy_change = new_energy - current_energy
+                if energy_change < 0 or np.exp(
+                        -energy_change / current_temp) > np.random.rand():
+                    current_points = new_points
+                    current_energy = new_energy
 
-def forced_new_positions(p, E, T, sigma):
-    """
-    Function to find new position of particles
-    
-    :param p: Positions of the particles
-    :param E: Current energy of the system
-    :param T: Cooling temperature
-    :param sigma: Standard deviation of the normal distribution
-    :return: New positions of the particles and the corresponding energy
-    """
-    p_new = p.copy()
-    E_new = E
+        # Save the energy and temperature
+        E.append(current_energy)
 
-    # Perturb the system
-    for i in range(len(p)):
-        p_trial = random_new_positions(p_new, i, sigma)
-        E_trial = energy(p_trial)
+        # Decrease the temperature
+        if cooling_schedule == "exponential":
+            current_temp *= alpha
+        elif cooling_schedule == "linear":
+            current_temp -= alpha
 
-        # Check if perturbation is accepted
-        if acceptance_probability(E_new, E_trial, T) > np.random.uniform(0, 1):
-            p_new = p_trial
-            E_new = E_trial
-
-    return p_new, E_new
-
-
-def annealing(N, T_max, T_min, cooling_schedule, no_iterations):
-    """
-    Function to run the annealing process
-    
-    :param N: Number of particles
-    :param T_max: Maximum temperature
-    :param T_min: Minimum temperature
-    :param cooling_schedule: Amount of cooling per iteration
-    :param no_iterations: Number of iterations per temperature
-    :return: Positions and energies of the system per temperature
-    """
-    # Initialize positions
-    p = initialize(N)
-
-    # Initialize energy
-    E = energy(p)
-
-    # Initialize temperature
-    T = T_max
-
-    # Annealing process
-    while T > T_min:
-        # Initialize standard deviation of random normal perturbation
-        sigma = T
-
-        # Markov chain
-        for k in range(no_iterations):
-            # Inducing some random perturbations
-            if k == no_iterations/10:
-                p, E = random_new_positions(p, E, T, sigma)
-            else:
-            # Get new positions for each iteration
-                p, E = forced_new_positions(p, E, T, sigma)
-
-        # Cool system
-        T *= cooling_schedule
-
-    return p, E
-
-
-def plot_positions(p):
-    fig, ax = plt.subplots()
-    circle = plt.Circle((0, 0), 1, color='blue', fill=False)
-    ax.add_artist(circle)
-    ax.scatter(p[:,0], p[:,1], color='red', s=4)
-    plt.xlim(-1.25, 1.25)
-    plt.ylim(-1.25, 1.25)
-    plt.axhline(y=0, color='blue')
-    plt.axvline(x=0, color='blue')
-    plt.title("Particle positions for N = " + str(len(p)))
-    plt.show()
+    return current_points, E
